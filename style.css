@@ -98,6 +98,11 @@ button:hover {
 	font-family: "Montserrat", sans-serif;
 }
 
+#footer p {
+    opacity: 1;
+    color: #F3DAB2;
+}
+
 #footer img {
 	height: 15px;
 	transition-timing-function: ease-in-out;
