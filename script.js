@@ -103,7 +103,6 @@ const pieceFactory = (() => {
 
         const getEveryDiagTake = () => {
             let options = [];
-            console.log("hi")
             for (let a = 0, i = -1; a < 2; a++, i *= -1) 
                 for (let b = 0, j = -1; b < 2; b++, j *= -1) {
                     const oponent = findFirstOponent(x, y, i, j);
@@ -249,38 +248,109 @@ function updatePieces() {
     for (let piece of pieces) {
         const id = piece.getID();
         const pieceDOM = document.getElementById(`${id}`);
-        for (let classes of piece.getClass()) {
-            pieceDOM.classList.add(classes);
-        }
-            
+        piece.getClass().forEach(class_ => pieceDOM.classList.add(class_));
     }
 }
 
 function removePreviousPieces() {
     const table = document.querySelector("table");
     table.querySelectorAll("div").forEach(node => {
-        const class_ = node.className;
-        if (class_) node.classList.remove(class_);
+        node.classList.remove(... node.classList);
     });
 }
 
 updatePieces();
 
-// function 
+function setListeners(player) {
+    const pieces = player.getPieces();
+    for (let piece of pieces) {
+        const id = piece.getID();
+        const pieceDOM = document.getElementById(`${id}`);
+        pieceDOM.addEventListener("click", allowToMove);
+    }
+}
 
-let blackPiece = board[2][3]
-const bluePiece = board[5][6]
-blackPiece.move(3, 4)
+const allowToMove = (event) => {
+    toggleSelected(event)
+    const id = event.target.id;
+    const pieceSelected = getPieceFromID(id);
+    const availableMoves = [... pieceSelected.getEveryDiagMove(), ... pieceSelected.getEveryDiagTake()];
+    for (moveID of availableMoves) {
+        console.log(moveID)
+    }
+    setListenersToMove(availableMoves, pieceSelected);
+    
+}
+
+function toggleSelected(event) {
+    const previousSelected = document.querySelector(".selected");
+    if (previousSelected) previousSelected.classList.remove("selected");
+    const newSelected = event.target;
+    newSelected.classList.add("selected");
+}
+
+function setListenersToMove (availableMoves, pieceSelected) {
+    unhighlightOptions()
+    for (let id of availableMoves) {
+        const moveTo = document.getElementById(`${id}`);
+        moveTo.classList.add("highlight");
+        moveTo.addEventListener("click", function() {
+            const newX = parseInt(id[0]);
+            const newY = parseInt(id[1]);
+            pieceSelected.move(newX, newY);
+            updatePieces();
+            removePreviousListeners(availableMoves);
+            analyzePosition(pieceSelected);
+            
+        });
+    }
+}
+
+function unhighlightOptions() {
+    const highlighted = document.querySelectorAll(".highlight");
+    highlighted.forEach(node => node.classList.remove("highlight"));
+}
+
+function removePreviousListeners() {
+    const squares = document.querySelectorAll("table div");
+    for (let square of squares) {
+        const id = square.id;
+        if (!id) continue
+        const node = document.getElementById(`${id}`);
+        node.replaceWith(node.cloneNode(true));
+    }
+}
 
 
-const pieces = [... black.getPieces(), ... blue.getPieces()];
-for (let piece of pieces)
-piece.promote();
-//     // console.log(piece.getID());
+function analyzePosition (pieceSelected) {
+    if (pieceSelected.justTook()) {
+        const gameEnded = checkGameEnded(pieceSelected);
+        if (gameEnded) setWinMessage(pieceSelected);
+        const availableMoves = pieceSelected.getEveryDiagTake();
+        if (availableMoves.length) {
+            setListenersToMove(availableMoves, pieceSelected);
+            return;
+        }
+    }
+    const player = getNextPlayer(pieceSelected);
+    setListeners(player)
+}
 
+function checkGameEnded(pieceSelected) {
+    const player = getNextPlayer(pieceSelected);
+    const piecesRemaining = player.getPieces();
+    return piecesRemaining.length === 0
+}
 
-updatePieces();
-console.log(bluePiece.getEveryDiagMove())
-console.log(bluePiece.getEveryDiagTake())
-// bluePiece.move(2, 3);
-// updatePieces();
+function getNextPlayer(pieceSelected) {
+    const color = pieceSelected.getColor();
+    const player = color === "black" ? blue : black;
+    return player;
+}
+
+function setWinMessage(pieceSelected) {
+    const color = pieceSelected.getColor();
+    
+}
+
+setListeners(blue)

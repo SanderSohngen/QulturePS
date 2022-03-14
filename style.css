@@ -58,6 +58,20 @@ td {
     border: 3px solid #F3DAB2
 }
 
+.selected {
+	width: 20px;
+	height: 20px;
+}
+
+.highlight {
+    width: 20px;
+    height: 20px;
+    padding: 10px;
+    background-color: #4B7F52;
+    border-radius: 50px;
+    margin: auto;
+}
+
 #options {
     display: flex;
     gap: 10px;
