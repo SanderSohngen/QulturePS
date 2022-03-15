@@ -8,7 +8,7 @@ body {
 	min-height: 100vh;
 }
 
-#header {
+header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -103,7 +103,7 @@ button:hover {
 	color: #BD875E;
 }
 
-#footer {
+footer {
 	margin-top: auto;
 	text-align: center;
 	background-color: #333333;
@@ -112,17 +112,17 @@ button:hover {
 	font-family: "Montserrat", sans-serif;
 }
 
-#footer p {
+footer p {
     opacity: 1;
     color: #F3DAB2;
 }
 
-#footer img {
+footer img {
 	height: 15px;
 	transition-timing-function: ease-in-out;
 }
 
-#footer img:hover {
+footer img:hover {
 	transform: rotate(1turn);
 	transition-duration: 0.5s;
 }
