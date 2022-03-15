@@ -1,68 +1,68 @@
 const pieceFactory = (() => {
-    const Piece = (x, y, direction) => {
+    const Piece = (x, y, color, tookPiece = false) => {
         const getX = () => x;
         const getY = () => y;
+        const direction = color === "black" ? 1 : -1;
         const getDirection = () => direction;
-        const color = direction === 1 ? "black" : "blue";
         const getColor = () => color;
         const getClass = () => [color.concat("-piece")];
         const getID = () => [x, y].join("");
-        
-        let tookPiece = false;
         const justTook = () => tookPiece;
 
-        const getEveryDiagMove = () => {
+        const getEveryDiagMove = (board) => {
             let options = [];
             for (let a = 0, i = -1; a < 2; a++, i *= -1) {
-                const moveDiag = checkMoveDiag(x, y, direction, i);
+                const moveDiag = checkMoveDiag(x, y, direction, i, board);
                 if (moveDiag) options.push(moveDiag);
             }
             return options;
         }
 
-        const checkMoveDiag = (x, y, direction, orientation) => {
+        const checkMoveDiag = (x, y, direction, orientation, board) => {
             const newX = x + direction;
             const newY = y + orientation;
-            if (outOfRange(newX, newY)) return;
+            if (outOfRange(newX, newY, board)) return;
             const diag = board[newX][newY];
             if (diag === null) return [newX, newY].join("");
         }
 
-        const outOfRange = (newX, newY) => {
+        const outOfRange = (newX, newY, board) => {
             const xOutRange = !(newX < board.length && newX > -1);
             const yOutRange = !(newY < board.length && newY > -1);
             return xOutRange || yOutRange;
         }
 
-        const getEveryDiagTake = () => {
+        const getEveryDiagTake = (board) => {
             let options = [];
             for (let a = 0, i = -1; a < 2; a++, i *= -1) 
                 for (let b = 0, j = -1; b < 2; b++, j *= -1) {
-                    const takeDiag = checkTakeDiag(x, y, i, j);
+                    const takeDiag = checkTakeDiag(x, y, i, j, board);
                     if (takeDiag) options.push(takeDiag);
                 }
             return options;
         }
 
-        const checkTakeDiag = (x, y, direction, orientation) => {
+        const checkTakeDiag = (x, y, direction, orientation, board) => {
             const newX = x + direction;
             const newY = y + orientation;
-            if (outOfRange(newX, newY)) return;
+            if (outOfRange(newX, newY, board)) return;
             const diag = board[newX][newY];
             if (diag === null || diag.getColor() === color) return;
-            return checkMoveDiag(newX, newY, direction, orientation);
+            return checkMoveDiag(newX, newY, direction, orientation, board);
         }
 
-        const move = (newX, newY) => {
-            checkTookPiece(newX, newY, x, y);
+        const move = (newX, newY, board) => {
+            checkTookPiece(newX, newY, x, y, board);
             board[newX][newY] = board[x][y];
             board[x][y] = null;
             x = newX;
             y = newY;
-            if (x === 0 || x === 7) promote();
+            const blackPromoted = color === "black" && x === 7;
+            const bluePromoted = color === "blue" && x === 0;
+            if (blackPromoted || bluePromoted) promote(board, tookPiece);
         }
 
-        const checkTookPiece = (newX, newY, oldX, oldY) => {
+        const checkTookPiece = (newX, newY, oldX, oldY, board) => {
             const deltaX = newX - oldX;
             const deltaY = newY - oldY;
             const took = (deltaX !== 1 && deltaX !== -1);
@@ -73,7 +73,7 @@ const pieceFactory = (() => {
             board[xTaken][yTaken] = null;
         }
 
-        const promote = () => board[x][y] = kingPiece(x, y, direction);
+        const promote = (board, tookPiece) => board[x][y] = kingPiece(x, y, color, tookPiece);
             
         return {
             getX,
@@ -92,8 +92,8 @@ const pieceFactory = (() => {
         }
     };
 
-    const kingPiece = (x, y, direction) => {
-        const prototype = Piece(x, y, direction);
+    const kingPiece = (x, y, color, tookPiece) => {
+        const prototype = Piece(x, y, color, tookPiece);
 
         const getClass = () => {
             const baseColor = prototype.getColor();
@@ -101,91 +101,58 @@ const pieceFactory = (() => {
             return [baseClass, "king"];
         }
 
-        const getEveryDiagTake = () => {
+        const getEveryDiagTake = (board) => {
             let options = [];
             for (let a = 0, i = -1; a < 2; a++, i *= -1) 
                 for (let b = 0, j = -1; b < 2; b++, j *= -1) {
-                    const oponent = findFirstOponent(x, y, i, j);
+                    const oponent = findFirstOponent(x, y, i, j, board);
                     if (!oponent) continue;
-                    const takeDiag = checkTakeDiag(oponent, i, j);
+                    const takeDiag = checkTakeDiag(oponent, i, j, board);
                     if (takeDiag) options.push(takeDiag);
                 }
             return options;
 
         }
 
-        const findFirstOponent = (x, y, direction, orientation) => {
-            for (let i = 1; !prototype.outOfRange(x + i*direction, y + i*orientation); i++) {
+        const findFirstOponent = (x, y, direction, orientation, board) => {
+            for (let i = 1; !prototype.outOfRange(x + i*direction, y + i*orientation, board); i++) {
                 const diag = board[x + i*direction][y + i*orientation];
                 if (diag === null) continue;
                 if (diag.getColor() !== prototype.getColor()) return diag;
             }
         }
 
-        const checkTakeDiag = (oponent, direction, orientation) => {
+        const checkTakeDiag = (oponent, direction, orientation, board) => {
             const newX = oponent.getX() - direction;
             const newY = oponent.getY() - orientation;
-            return prototype.checkTakeDiag(newX, newY, direction, orientation);
+            return prototype.checkTakeDiag(newX, newY, direction, orientation, board);
         }
 
         return Object.assign(prototype, {getEveryDiagTake, getClass})
     }
 
     return {
-        createPiece: Piece
+        createPiece: Piece,
     }
 })();
 
-function getPieceFromID(id) {
-    const x = id[0], y = id[1];
-    return board[x][y];
-}
-
-function createBoard() {
-    const board = Array(8).fill().map(() => Array(8).fill(null))
-    createBoardDOM(board);
-    return board;
-}
-
-function createBoardDOM(board) {
-    const content = document.querySelector("#content");
-    const table = document.createElement("table");
-
-    for (let i = 0; i < board.length; i++) {
-        const tr = document.createElement("tr");
-        table.appendChild(tr);
-        for (let j = 0; j < board[i].length; j++) {
-            const td = document.createElement("td");
-            const blockedSquare = (i + j) % 2 === 0;
-            if (blockedSquare) td.classList.add("blockedSquare");
-            else {
-                const div = document.createElement("div");
-                div.id = [i, j].join('');
-                td.appendChild(div);
-            }    
-            tr.appendChild(td);
-        }
-    }
-    content.appendChild(table);
-}
-
-const board = createBoard();
-
 const playerFactory = (() => {
-    const Player = (color, turnMessage, winMessage, remainingPieces) => {
+    const Player = (color, turnMessage, winMessage, remainingPieces, board) => {
         const getTurnMessage = () => turnMessage;
         const getWinMessage = () => winMessage;
+        const getColor = () => color;
 
         const getPieces = () => {
             remainingPieces = updatePieces();
             return remainingPieces;
         }
+
         const createPieces = () => {
             const firstPosition = color === "black" ? 0 : 5;
             const direction = color === "black" ? 1 : -1;
             for (let i = firstPosition; i < firstPosition + 3; i++) {
                 for (let j = (i + 1) % 2; j < board.length; j += 2) {
-                    const piece = pieceFactory.createPiece(i, j, direction);
+                    const piece = pieceFactory.createPiece(i, j, color);
                     remainingPieces.push(piece);
                     board[i][j] = piece;
                 }
@@ -194,40 +161,40 @@ const playerFactory = (() => {
 
         const updatePieces = () => {
             let pieces = [];
-            for (let i = 0; i < board.length; i++) {
+            for (let i = 0; i < board.length; i++) 
                 for (let j = 0; j < board.length; j++) {
                     const piece = board[i][j];
                     if (piece === null) continue;
                     if (color === piece.getColor()) pieces.push(piece);
                 }
-            }
             return pieces;
         }
 
         return {
             getTurnMessage,
             getWinMessage,
+            getColor,
             getPieces,
             createPieces,
             updatePieces,
         }
     }
  
-    const blackPlayer = () => {
+    const blackPlayer = (board) => {
         const color = "black";
         const turnMessage = "Black's turn"
         const winMessage = "Black won"
         let remainingPieces = [];
-        const prototype = Player(color, turnMessage, winMessage, remainingPieces);
+        const prototype = Player(color, turnMessage, winMessage, remainingPieces, board);
         return prototype;
     }
 
-    const bluePlayer = () => {
+    const bluePlayer = (board) => {
         const color = "blue";
         const turnMessage = "Blue's turn"
         const winMessage = "Blue won"
         let remainingPieces = [];
-        const prototype = Player(color, turnMessage, winMessage, remainingPieces);
+        const prototype = Player(color, turnMessage, winMessage, remainingPieces, board);
         return prototype;
     }
 
@@ -237,120 +204,205 @@ const playerFactory = (() => {
     }
 })();
 
-const black = playerFactory.createBlackPlayer();
-const blue = playerFactory.createBluePlayer();
-black.createPieces();
-blue.createPieces();
-
-function updatePieces() {
-    removePreviousPieces();
-    const pieces = [...black.getPieces(), ...blue.getPieces()];
-    for (let piece of pieces) {
-        const id = piece.getID();
-        const pieceDOM = document.getElementById(`${id}`);
-        piece.getClass().forEach(class_ => pieceDOM.classList.add(class_));
+const game = (() => {
+    const restartGame = () => {
+        board = createBoard();
+        blackPlayer = playerFactory.createBlackPlayer(board);
+        bluePlayer = playerFactory.createBluePlayer(board);
+        blackPlayer.createPieces();
+        bluePlayer.createPieces();
+        updatePieces(blackPlayer, bluePlayer);
+        setNextTurn(blackPlayer, bluePlayer);
     }
-}
 
-function removePreviousPieces() {
-    const table = document.querySelector("table");
-    table.querySelectorAll("div").forEach(node => {
-        node.classList.remove(... node.classList);
-    });
-}
-
-updatePieces();
-
-function setListeners(player) {
-    const pieces = player.getPieces();
-    for (let piece of pieces) {
-        const id = piece.getID();
-        const pieceDOM = document.getElementById(`${id}`);
-        pieceDOM.addEventListener("click", allowToMove);
+    const createBoard = () => {
+        const board = Array(8).fill().map(() => Array(8).fill(null));
+        createBoardDOM(board);
+        return board;
     }
-}
 
-const allowToMove = (event) => {
-    toggleSelected(event)
-    const id = event.target.id;
-    const pieceSelected = getPieceFromID(id);
-    const availableMoves = [... pieceSelected.getEveryDiagMove(), ... pieceSelected.getEveryDiagTake()];
-    for (moveID of availableMoves) {
-        console.log(moveID)
-    }
-    setListenersToMove(availableMoves, pieceSelected);
+    const createBoardDOM = (board) => {
+        const content = document.querySelector("#content");
+        const previousTable = document.querySelector("table");
+        if (previousTable) content.removeChild(previousTable);
+        const table = document.createElement("table");
     
-}
-
-function toggleSelected(event) {
-    const previousSelected = document.querySelector(".selected");
-    if (previousSelected) previousSelected.classList.remove("selected");
-    const newSelected = event.target;
-    newSelected.classList.add("selected");
-}
-
-function setListenersToMove (availableMoves, pieceSelected) {
-    unhighlightOptions()
-    for (let id of availableMoves) {
-        const moveTo = document.getElementById(`${id}`);
-        moveTo.classList.add("highlight");
-        moveTo.addEventListener("click", function() {
-            const newX = parseInt(id[0]);
-            const newY = parseInt(id[1]);
-            pieceSelected.move(newX, newY);
-            updatePieces();
-            removePreviousListeners(availableMoves);
-            analyzePosition(pieceSelected);
-            
-        });
+        for (let i = 0; i < board.length; i++) {
+            const tr = document.createElement("tr");
+            table.appendChild(tr);
+            for (let j = 0; j < board[i].length; j++) {
+                const td = document.createElement("td");
+                const blockedSquare = (i + j) % 2 === 0;
+                if (blockedSquare) td.classList.add("blockedSquare");
+                else {
+                    const div = document.createElement("div");
+                    div.id = [i, j].join('');
+                    td.appendChild(div);
+                }    
+                tr.appendChild(td);
+            }
+        }
+        content.appendChild(table);
     }
-}
-
-function unhighlightOptions() {
-    const highlighted = document.querySelectorAll(".highlight");
-    highlighted.forEach(node => node.classList.remove("highlight"));
-}
-
-function removePreviousListeners() {
-    const squares = document.querySelectorAll("table div");
-    for (let square of squares) {
-        const id = square.id;
-        if (!id) continue
-        const node = document.getElementById(`${id}`);
-        node.replaceWith(node.cloneNode(true));
+    
+    const getPieceFromID = (id) =>{
+        const x = id[0], y = id[1];
+        return board[x][y];
     }
-}
-
-
-function analyzePosition (pieceSelected) {
-    if (pieceSelected.justTook()) {
-        const gameEnded = checkGameEnded(pieceSelected);
-        if (gameEnded) setWinMessage(pieceSelected);
-        const availableMoves = pieceSelected.getEveryDiagTake();
-        if (availableMoves.length) {
-            setListenersToMove(availableMoves, pieceSelected);
-            return;
+    
+    const updatePieces = (blackPlayer, bluePlayer) => {
+        removePreviousPieces();
+        const pieces = [...blackPlayer.getPieces(), ...bluePlayer.getPieces()];
+        for (let piece of pieces) {
+            const id = piece.getID();
+            const pieceDOM = document.getElementById(`${id}`);
+            piece.getClass().forEach(class_ => pieceDOM.classList.add(class_));
         }
     }
-    const player = getNextPlayer(pieceSelected);
-    setListeners(player)
-}
-
-function checkGameEnded(pieceSelected) {
-    const player = getNextPlayer(pieceSelected);
-    const piecesRemaining = player.getPieces();
-    return piecesRemaining.length === 0
-}
-
-function getNextPlayer(pieceSelected) {
-    const color = pieceSelected.getColor();
-    const player = color === "black" ? blue : black;
-    return player;
-}
-
-function setWinMessage(pieceSelected) {
-    const color = pieceSelected.getColor();
     
-}
+    const removePreviousPieces = () => {
+        const table = document.querySelector("table");
+        table.querySelectorAll("div").forEach(node => {
+            node.classList.remove(... node.classList);
+        });
+    }
+    
+    const setListeners = (player) => {
+        const pieces = player.getPieces();
+        for (let piece of pieces) {
+            const id = piece.getID();
+            const pieceDOM = document.getElementById(`${id}`);
+            pieceDOM.addEventListener("click", allowToMove);
+        }
+    }
+    
+    const allowToMove = (event) => {
+        toggleSelected(event)
+        const id = event.target.id;
+        const pieceSelected = getPieceFromID(id);
+        const availableMoves = [... pieceSelected.getEveryDiagMove(board), ... pieceSelected.getEveryDiagTake(board)];
+        setListenersToMove(availableMoves, pieceSelected);
+    }
+    
+    const toggleSelected = (event) => {
+        const previousSelected = document.querySelector(".selected");
+        if (previousSelected) previousSelected.classList.remove("selected");
+        const newSelected = event.target;
+        newSelected.classList.add("selected");
+    }
+    
+    const setListenersToMove = (availableMoves, pieceSelected) => {
+        unhighlightOptions()
+        for (let id of availableMoves) {
+            const moveTo = document.getElementById(`${id}`);
+            moveTo.classList.add("highlight");
+            moveTo.addEventListener("click", function() {
+                const newX = parseInt(id[0]);
+                const newY = parseInt(id[1]);
+                pieceSelected.move(newX, newY, board);
+                updatePieces(blackPlayer, bluePlayer);
+                removePreviousListeners();
+                analyzePosition(pieceSelected);
+            });
+        }
+    }
+    
+    const unhighlightOptions = () => {
+        const highlighted = document.querySelectorAll(".highlight");
+        highlighted.forEach(node => node.classList.remove("highlight"));
+    }
+    
+    const removePreviousListeners = () => {
+        const squares = document.querySelectorAll("table div");
+        for (let square of squares) {
+            const id = square.id;
+            if (!id) continue
+            const node = document.getElementById(`${id}`);
+            node.replaceWith(node.cloneNode(true));
+        }
+    }
+    
+    const analyzePosition = (pieceSelected) => {
+        const currentPlayer = getCurrentPlayer(pieceSelected);
+        const nextPlayer = getNextPlayer(pieceSelected);
+        if (pieceSelected.justTook()) {
+            const gameEnded = checkGameEnded(nextPlayer);
+            if (gameEnded) endGame(currentPlayer);  
+            const availableMoves = pieceSelected.getEveryDiagTake(board);
+            if (availableMoves.length) {
+                setListenersToMove(availableMoves, pieceSelected);
+                return;
+            }
+        }
+        setNextTurn(currentPlayer, nextPlayer);
+    }
+    
+    const getCurrentPlayer  = (pieceSelected) => {
+        const color = pieceSelected.getColor();
+        const player = color === blackPlayer.getColor() ? blackPlayer : bluePlayer;
+        return player;
+    }
+    
+    const getNextPlayer = (pieceSelected) => {
+        const color = pieceSelected.getColor();
+        const player = color === blackPlayer.getColor() ? bluePlayer : blackPlayer;
+        return player;
+    }
+    
+    const checkGameEnded = (nextPlayer) => {
+        const piecesRemaining = nextPlayer.getPieces();
+        return piecesRemaining.length === 0
+    }
+    
+    const setNextTurn = (currentPlayer, nextPlayer) => {
+        changeTurnMessage(currentPlayer, nextPlayer);
+        setListeners(nextPlayer);
+    }
+    
+    const changeTurnMessage = (currentPlayer, nextPlayer) => {
+        const currentDOM = getMessageDOM(currentPlayer);
+        const nextDOM = getMessageDOM(nextPlayer);
+        currentDOM.classList.remove("turn");
+        nextDOM.classList.add("turn");
+        currentDOM.textContent = currentPlayer.getTurnMessage();
+        nextDOM.textContent = nextPlayer.getTurnMessage();
+    }
 
-setListeners(blue)
+    const getMessageDOM = (player) => {
+        const color = player.getColor();
+        const DOM = document.getElementById(`${color}Message`);
+        return DOM;
+    }
+    
+    const endGame = (currentPlayer) => {
+        setWinMessage(currentPlayer);
+        removePreviousListeners();
+    }
+    
+    const setWinMessage = (currentPlayer) => {
+        const WinMSG = currentPlayer.getWinMessage();
+        const color = currentPlayer.getColor();
+        const messageDOM = document.getElementById(`${color}Message`);
+        messageDOM.textContent = WinMSG;
+    }
+
+    const restart = document.querySelector("#restart");
+    restart.addEventListener("click", restartGame);
+    let board = createBoard();
+    let blackPlayer = playerFactory.createBlackPlayer(board);
+    let bluePlayer = playerFactory.createBluePlayer(board);
+    
+    return {
+        restartGame,
+    }
+})();
+
+game.restartGame();
+
+// TODO separate DOM manipulation from game logic
+// TODO fix win message bug (it wont change, but the method should be working)
+// TODO fix bug when selecting two pieces with same possible square to move (both move to it and the previous is deleted)
+// TODO improve header layout
+// TODO implement unit testing (using only the board, not DOM manipulation)
+// TODO decide if force take
+// TODO fix bug when promoting and taking, piece not moving on DOM
