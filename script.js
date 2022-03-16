@@ -321,7 +321,7 @@ const game = (() => {
         for (let id of availableMoves) {
             const moveTo = document.getElementById(`${id}`);
             moveTo.classList.add("highlight");
-            moveTo.addEventListener("click", function() {
+            moveTo.addEventListener("click", () => {
                 const newX = parseInt(id[0]);
                 const newY = parseInt(id[1]);
                 pieceSelected.move(newX, newY, board);
@@ -355,7 +355,10 @@ const game = (() => {
         const nextPlayer = getNextPlayer(pieceSelected);
         if (pieceSelected.justTook()) {
             const gameEnded = checkGameEnded(nextPlayer);
-            if (gameEnded) endGame(currentPlayer);  
+            if (gameEnded) {
+                endGame(currentPlayer);  
+                return;
+            }
             const availableMoves = pieceSelected.getEveryDiagTake(board);
             if (availableMoves.length) {
                 setListenersToMove(availableMoves, pieceSelected);
@@ -392,8 +395,8 @@ const game = (() => {
         const nextDOM = getMessageDOM(nextPlayer);
         currentDOM.classList.remove("turn");
         nextDOM.classList.add("turn");
-        currentDOM.textContent = currentPlayer.getTurnMessage();
-        nextDOM.textContent = nextPlayer.getTurnMessage();
+        // currentDOM.textContent = currentPlayer.getTurnMessage();
+        // nextDOM.textContent = nextPlayer.getTurnMessage();
     }
 
     const getMessageDOM = (player) => {
@@ -411,7 +414,7 @@ const game = (() => {
     const setWinMessage = (currentPlayer) => {
         const WinMSG = currentPlayer.getWinMessage();
         const color = currentPlayer.getColor();
-        const messageDOM = document.getElementById(`${color}Message`);
+        const messageDOM = document.getElementById(`${color}Message`).firstChild;
         messageDOM.textContent = WinMSG;
     }
 
@@ -427,6 +430,10 @@ const game = (() => {
 })();
 
 game.restartGame();
+
+// let messageDOM = document.getElementById("blueMessage");
+// messageDOM.firstChild.textContent = "hi"
+// console.log();
 
 // TODO fix win message bug (it wont change, but the method should be working)
 // TODO separate DOM manipulation from game logic
