@@ -3,7 +3,6 @@ const pieceFactory = (() => {
         const getX = () => x;
         const getY = () => y;
         const direction = color === "black" ? 1 : -1;
-        const getDirection = () => direction;
         const getColor = () => color;
         const getClass = () => [color.concat("-piece")];
         const getID = () => [x, y].join("");
@@ -83,7 +82,6 @@ const pieceFactory = (() => {
             getX,
             getY,
             getID,
-            getDirection,
             getClass,
             getColor,
             move,
@@ -128,7 +126,6 @@ const pieceFactory = (() => {
                     if (takeDiag) options.push(takeDiag);
                 }
             return options;
-
         }
 
         const findFirstOponent = (x, y, direction, orientation, board) => {
@@ -162,8 +159,7 @@ const pieceFactory = (() => {
 })();
 
 const playerFactory = (() => {
-    const Player = (color, turnMessage, winMessage, remainingPieces, board) => {
-        const getTurnMessage = () => turnMessage;
+    const Player = (color, winMessage, remainingPieces, board) => {
         const getWinMessage = () => winMessage;
         const getColor = () => color;
 
@@ -195,7 +191,6 @@ const playerFactory = (() => {
         }
 
         return {
-            getTurnMessage,
             getWinMessage,
             getColor,
             getPieces,
@@ -206,19 +201,17 @@ const playerFactory = (() => {
  
     const blackPlayer = (board) => {
         const color = "black";
-        const turnMessage = "Black's turn"
         const winMessage = "Black won"
         let remainingPieces = [];
-        const prototype = Player(color, turnMessage, winMessage, remainingPieces, board);
+        const prototype = Player(color, winMessage, remainingPieces, board);
         return prototype;
     }
 
     const bluePlayer = (board) => {
         const color = "blue";
-        const turnMessage = "Blue's turn"
         const winMessage = "Blue won"
         let remainingPieces = [];
-        const prototype = Player(color, turnMessage, winMessage, remainingPieces, board);
+        const prototype = Player(color, winMessage, remainingPieces, board);
         return prototype;
     }
 
@@ -395,8 +388,6 @@ const game = (() => {
         const nextDOM = getMessageDOM(nextPlayer);
         currentDOM.classList.remove("turn");
         nextDOM.classList.add("turn");
-        // currentDOM.textContent = currentPlayer.getTurnMessage();
-        // nextDOM.textContent = nextPlayer.getTurnMessage();
     }
 
     const getMessageDOM = (player) => {
@@ -406,7 +397,6 @@ const game = (() => {
     }
     
     const endGame = (currentPlayer) => {
-        console.log("hi")
         setWinMessage(currentPlayer);
         removePreviousListeners();
     }
@@ -430,12 +420,3 @@ const game = (() => {
 })();
 
 game.restartGame();
-
-// let messageDOM = document.getElementById("blueMessage");
-// messageDOM.firstChild.textContent = "hi"
-// console.log();
-
-// TODO fix win message bug (it wont change, but the method should be working)
-// TODO separate DOM manipulation from game logic
-// TODO improve header layout
-// TODO implement unit testing (using only the board, not DOM manipulation)
