@@ -65,9 +65,8 @@ const pieceFactory = (() => {
         const checkTookPiece = (newX, newY, oldX, oldY, board) => {
             const deltaX = newX - oldX;
             const deltaY = newY - oldY;
-            const took = (deltaX !== 1 && deltaX !== -1);
-            tookPiece = took;
-            if (!took) return;
+            tookPiece = (deltaX !== 1 && deltaX !== -1);
+            if (!tookPiece) return;
             const xTaken = deltaX > 0 ? newX - 1 : newX + 1;
             const yTaken = deltaY > 0 ? newY - 1 : newY + 1;
             board[xTaken][yTaken] = null;
@@ -170,13 +169,12 @@ const playerFactory = (() => {
 
         const createPieces = () => {
             const firstPosition = color === "black" ? 0 : 5;
-            for (let i = firstPosition; i < firstPosition + 3; i++) {
+            for (let i = firstPosition; i < firstPosition + 3; i++)
                 for (let j = (i + 1) % 2; j < board.length; j += 2) {
                     const piece = pieceFactory.createPiece(i, j, color);
                     remainingPieces.push(piece);
                     board[i][j] = piece;
                 }
-            }
         }
 
         const updatePieces = () => {
@@ -243,7 +241,10 @@ const game = (() => {
         const previousTable = document.querySelector("table");
         if (previousTable) content.removeChild(previousTable);
         const table = document.createElement("table");
-    
+        appendSquares(table, content, board);
+    }
+
+    const appendSquares = (table, content, board) => {
         for (let i = 0; i < board.length; i++) {
             const tr = document.createElement("tr");
             table.appendChild(tr);
@@ -274,9 +275,7 @@ const game = (() => {
     
     const removePreviousPieces = () => {
         const table = document.querySelector("table");
-        table.querySelectorAll("div").forEach(node => {
-            node.classList.remove(... node.classList);
-        });
+        table.querySelectorAll("div").forEach(node => node.classList.remove(... node.classList));
     }
     
     const setListeners = (player) => {
