@@ -1,5 +1,5 @@
 const pieceFactory = (() => {
-    const Piece = (x, y, color, tookPiece = false) => {
+    const Piece = (x, y, color) => {
         const getX = () => x;
         const getY = () => y;
         const direction = color === "black" ? 1 : -1;
@@ -7,6 +7,7 @@ const pieceFactory = (() => {
         const getColor = () => color;
         const getClass = () => [color.concat("-piece")];
         const getID = () => [x, y].join("");
+        let tookPiece = false;
         const justTook = () => tookPiece;
 
         const getEveryDiagMove = (board) => {
@@ -59,7 +60,7 @@ const pieceFactory = (() => {
             y = newY;
             const blackPromoted = color === "black" && x === 7;
             const bluePromoted = color === "blue" && x === 0;
-            if (blackPromoted || bluePromoted) promote(board, tookPiece);
+            if (blackPromoted || bluePromoted) promote(board);
         }
 
         const checkTookPiece = (newX, newY, oldX, oldY, board) => {
@@ -73,8 +74,11 @@ const pieceFactory = (() => {
             board[xTaken][yTaken] = null;
         }
 
-        const promote = (board, tookPiece) => board[x][y] = kingPiece(x, y, color, tookPiece);
-            
+        const promote = (board) => {
+            board[x][y] = kingPiece(x, y, color);
+            tookPiece = false;
+        }
+
         return {
             getX,
             getY,
@@ -83,22 +87,35 @@ const pieceFactory = (() => {
             getClass,
             getColor,
             move,
+            checkTookPiece,
             promote,
             getEveryDiagMove,
             getEveryDiagTake,
             checkTakeDiag,
+            checkMoveDiag,
             outOfRange,
             justTook,
         }
     };
 
-    const kingPiece = (x, y, color, tookPiece) => {
-        const prototype = Piece(x, y, color, tookPiece);
+    const kingPiece = (x, y, color) => {
+        const prototype = Piece(x, y, color);
+        const getID = () => [x, y].join("");
 
         const getClass = () => {
             const baseColor = prototype.getColor();
             const baseClass = baseColor.concat("-piece");
             return [baseClass, "king"];
+        }
+
+        const getEveryDiagMove = (board) => {
+            let options = [];
+            for (let a = 0, i = -1; a < 2; a++, i *= -1)
+                for(let b = 0, j = -1; b < 2; b++, j *= -1) {
+                    const moveDiag = prototype.checkMoveDiag(x, y, i, j, board);
+                    if (moveDiag) options.push(moveDiag);
+                }
+            return options;
         }
 
         const getEveryDiagTake = (board) => {
@@ -128,7 +145,15 @@ const pieceFactory = (() => {
             return prototype.checkTakeDiag(newX, newY, direction, orientation, board);
         }
 
-        return Object.assign(prototype, {getEveryDiagTake, getClass})
+        const move = (newX, newY, board) => {
+            prototype.checkTookPiece(newX, newY, x, y, board);
+            board[newX][newY] = board[x][y];
+            board[x][y] = null;
+            x = newX;
+            y = newY;
+        }
+
+        return Object.assign(prototype, {getID, getClass, getEveryDiagMove, getEveryDiagTake, move})
     }
 
     return {
@@ -149,7 +174,6 @@ const playerFactory = (() => {
 
         const createPieces = () => {
             const firstPosition = color === "black" ? 0 : 5;
-            const direction = color === "black" ? 1 : -1;
             for (let i = firstPosition; i < firstPosition + 3; i++) {
                 for (let j = (i + 1) % 2; j < board.length; j += 2) {
                     const piece = pieceFactory.createPiece(i, j, color);
@@ -245,11 +269,6 @@ const game = (() => {
         content.appendChild(table);
     }
     
-    const getPieceFromID = (id) =>{
-        const x = id[0], y = id[1];
-        return board[x][y];
-    }
-    
     const updatePieces = (blackPlayer, bluePlayer) => {
         removePreviousPieces();
         const pieces = [...blackPlayer.getPieces(), ...bluePlayer.getPieces()];
@@ -291,8 +310,14 @@ const game = (() => {
         newSelected.classList.add("selected");
     }
     
+    const getPieceFromID = (id) =>{
+        const x = id[0], y = id[1];
+        return board[x][y];
+    }
+    
     const setListenersToMove = (availableMoves, pieceSelected) => {
-        unhighlightOptions()
+        unhighlightOptions();
+        removePreviousListeners(true);
         for (let id of availableMoves) {
             const moveTo = document.getElementById(`${id}`);
             moveTo.classList.add("highlight");
@@ -301,7 +326,7 @@ const game = (() => {
                 const newY = parseInt(id[1]);
                 pieceSelected.move(newX, newY, board);
                 updatePieces(blackPlayer, bluePlayer);
-                removePreviousListeners();
+                removePreviousListeners(false);
                 analyzePosition(pieceSelected);
             });
         }
@@ -312,11 +337,14 @@ const game = (() => {
         highlighted.forEach(node => node.classList.remove("highlight"));
     }
     
-    const removePreviousListeners = () => {
+    const removePreviousListeners = (removeOnlyEmptySquares) => {
         const squares = document.querySelectorAll("table div");
         for (let square of squares) {
             const id = square.id;
             if (!id) continue
+            const classes = square.classList;
+            const isEmptySquare = classes.length === 0;
+            if (removeOnlyEmptySquares && !isEmptySquare) continue;
             const node = document.getElementById(`${id}`);
             node.replaceWith(node.cloneNode(true));
         }
@@ -375,6 +403,7 @@ const game = (() => {
     }
     
     const endGame = (currentPlayer) => {
+        console.log("hi")
         setWinMessage(currentPlayer);
         removePreviousListeners();
     }
@@ -399,10 +428,7 @@ const game = (() => {
 
 game.restartGame();
 
-// TODO separate DOM manipulation from game logic
 // TODO fix win message bug (it wont change, but the method should be working)
-// TODO fix bug when selecting two pieces with same possible square to move (both move to it and the previous is deleted)
+// TODO separate DOM manipulation from game logic
 // TODO improve header layout
 // TODO implement unit testing (using only the board, not DOM manipulation)
-// TODO decide if force take
-// TODO fix bug when promoting and taking, piece not moving on DOM
