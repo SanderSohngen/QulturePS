@@ -18,6 +18,15 @@ header {
 	font-size: 30px;
 }
 
+header img {
+	height: 80px;
+	border-radius: 40px;
+}
+
+h1 {
+	color: #333333;
+}
+
 #content {
     margin-top: auto;
 	display: flex;
