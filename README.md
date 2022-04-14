@@ -2,7 +2,7 @@
 
 A simple web implementation of checkers, with the rules found on Wikipedia.
 
-# Design choiches
+# Design choices
 
 For the Design Pattern, Factory functions and Module Pattern with prototypal inheritance having Functional Programming's style in mind.
 
